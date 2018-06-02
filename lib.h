@@ -8,15 +8,19 @@
 #ifndef FADEINFADEOUTYUV_LIB_H
 #define FADEINFADEOUTYUV_LIB_H
 
-#define PIXEL_NUMBER 259200
+#define IMAGE_WIDTH 1920
+#define IMAGE_HEIGHT 1080
+#define PIXEL_NUMBER (IMAGE_WIDTH * IMAGE_HEIGHT)
 #define YUV_SIZE (PIXEL_NUMBER * 3 / 2)
-#define YUV_FRAME_SIZE 36
-#define PIXEL_PER_FRAME 24
 #define RGB_SIZE (PIXEL_NUMBER * 3)
 
 #define RANGE(x, a, b) (x < a ? a : ( x > b ? b : x))
-#define UV_INDEX(y) ((y / 12) * 3 + (y % 6) / 2)
+#define UV_INDEX(y) ((y / (IMAGE_WIDTH * 2)) * (IMAGE_WIDTH / 2) + (y % IMAGE_WIDTH) / 2)
 
 void yuv_to_rgb(unsigned char *yuv_image, unsigned char *rgb_image);
+
+void rgb_to_yuv(unsigned char *rgb_image, unsigned char *yuv_image);
+
+void apply_alpha(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
 
 #endif //FADEINFADEOUTYUV_LIB_H
