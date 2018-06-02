@@ -8,7 +8,6 @@
 #ifndef FADEINFADEOUTYUV_LIB_H
 #define FADEINFADEOUTYUV_LIB_H
 
-//#define DEBUG
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 1080
 #define PIXEL_NUMBER (IMAGE_WIDTH * IMAGE_HEIGHT)
@@ -21,5 +20,7 @@
 void yuv_to_rgb(unsigned char *yuv_image, unsigned char *rgb_image);
 
 void rgb_to_yuv(unsigned char *rgb_image, unsigned char *yuv_image);
+
+void apply_alpha(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
 
 #endif //FADEINFADEOUTYUV_LIB_H

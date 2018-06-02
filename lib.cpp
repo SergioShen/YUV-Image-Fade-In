@@ -54,3 +54,11 @@ void rgb_to_yuv(unsigned char *rgb_image, unsigned char *yuv_image) {
         yuv_image[PIXEL_NUMBER + PIXEL_NUMBER / 4 + UV_INDEX(pixel_no)] = (unsigned char) RANGE(_v, 0, 255);
     }
 }
+
+void apply_alpha(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha) {
+    for (int pixel_no = 0; pixel_no < PIXEL_NUMBER; pixel_no++) {
+        dst_rgb_image[pixel_no * 3] = (unsigned char) ((int) src_rgb_image[pixel_no * 3] * (int) alpha / 256);
+        dst_rgb_image[pixel_no * 3 + 1] = (unsigned char) ((int) src_rgb_image[pixel_no * 3 + 1] * (int) alpha / 256);
+        dst_rgb_image[pixel_no * 3 + 2] = (unsigned char) ((int) src_rgb_image[pixel_no * 3 + 2] * (int) alpha / 256);
+    }
+}
