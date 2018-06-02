@@ -11,6 +11,42 @@ unsigned char original_rgb_image[RGB_SIZE];
 unsigned char processed_yuv_image[YUV_SIZE];
 unsigned char processed_rgb_image[RGB_SIZE];
 
+void yuv_to_rgb(unsigned char *yuv_image, unsigned char *rgb_image) {
+#if defined(MMX)
+    yuv_to_rgb_mmx(yuv_image, rgb_image);
+#elif defined(SSE2)
+    yuv_to_rgb_sse2(yuv_image, rgb_image);
+#elif defined(AVX)
+    yuv_to_rgb_avx(yuv_image, rgb_image);
+#else
+    yuv_to_rgb_base(yuv_image, rgb_image);
+#endif
+}
+
+void rgb_to_yuv(unsigned char *rgb_image, unsigned char *yuv_image) {
+#if defined(MMX)
+    rgb_to_yuv_mmx(rgb_image, yuv_image);
+#elif defined(SSE2)
+    rgb_to_yuv_sse2(rgb_image, yuv_image);
+#elif defined(AVX)
+    rgb_to_yuv_avx(rgb_image, yuv_image);
+#else
+    rgb_to_yuv_base(rgb_image, yuv_image);
+#endif
+}
+
+void apply_alpha(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha) {
+#if defined(MMX)
+    apply_alpha_mmx(src_rgb_image, dst_rgb_image, alpha);
+#elif defined(SSE2)
+    apply_alpha_sse2(src_rgb_image, dst_rgb_image, alpha);
+#elif defined(AVX)
+    apply_alpha_avx(src_rgb_image, dst_rgb_image, alpha);
+#else
+    apply_alpha_base(src_rgb_image, dst_rgb_image, alpha);
+#endif
+}
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         cout << "No input file" << endl;

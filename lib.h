@@ -17,10 +17,28 @@
 #define RANGE(x, a, b) (x < a ? a : ( x > b ? b : x))
 #define UV_INDEX(y) ((y / (IMAGE_WIDTH * 2)) * (IMAGE_WIDTH / 2) + (y % IMAGE_WIDTH) / 2)
 
-void yuv_to_rgb(unsigned char *yuv_image, unsigned char *rgb_image);
+void yuv_to_rgb_base(unsigned char *yuv_image, unsigned char *rgb_image);
 
-void rgb_to_yuv(unsigned char *rgb_image, unsigned char *yuv_image);
+void rgb_to_yuv_base(unsigned char *rgb_image, unsigned char *yuv_image);
 
-void apply_alpha(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
+void apply_alpha_base(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
+
+void yuv_to_rgb_mmx(unsigned char *yuv_image, unsigned char *rgb_image);
+
+void rgb_to_yuv_mmx(unsigned char *rgb_image, unsigned char *yuv_image);
+
+void apply_alpha_mmx(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
+
+void yuv_to_rgb_sse2(unsigned char *yuv_image, unsigned char *rgb_image);
+
+void rgb_to_yuv_sse2(unsigned char *rgb_image, unsigned char *yuv_image);
+
+void apply_alpha_sse2(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
+
+void yuv_to_rgb_avx(unsigned char *yuv_image, unsigned char *rgb_image);
+
+void rgb_to_yuv_avx(unsigned char *rgb_image, unsigned char *yuv_image);
+
+void apply_alpha_avx(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha);
 
 #endif //FADEINFADEOUTYUV_LIB_H
