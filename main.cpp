@@ -54,6 +54,8 @@ int main(int argc, char **argv) {
     }
     string file_name(argv[1]);
 
+    initialize_uv_index_array();
+
     ifstream original_yuv_file;
     original_yuv_file.open(file_name.c_str(), ios::in | ios::binary);
     original_yuv_file.read((char *) original_yuv_image, YUV_SIZE);

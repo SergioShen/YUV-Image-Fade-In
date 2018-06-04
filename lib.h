@@ -15,7 +15,8 @@
 #define RGB_SIZE (PIXEL_NUMBER * 3)
 
 #define RANGE(x, a, b) (x < a ? a : ( x > b ? b : x))
-#define UV_INDEX(y) ((y / (IMAGE_WIDTH * 2)) * (IMAGE_WIDTH / 2) + (y % IMAGE_WIDTH) / 2)
+
+void initialize_uv_index_array();
 
 void yuv_to_rgb_base(unsigned char *yuv_image, unsigned char *rgb_image);
 
