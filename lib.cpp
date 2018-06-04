@@ -65,6 +65,8 @@ void apply_alpha_base(unsigned char *src_rgb_image, unsigned char *dst_rgb_image
     }
 }
 
+#if defined(MMX)
+
 typedef short v4hi __attribute__ ((vector_size(8)));
 
 void yuv_to_rgb_mmx(unsigned char *yuv_image, unsigned char *rgb_image) {
@@ -100,6 +102,8 @@ void apply_alpha_mmx(unsigned char *src_rgb_image, unsigned char *dst_rgb_image,
         dst_rgb_image[byte_no + 3] = (unsigned char) (((short *) (&result))[3]);
     }
 }
+
+#elif defined(SSE2)
 
 typedef float v4sf __attribute__ ((vector_size(16)));
 typedef short v8hi __attribute__ ((vector_size(16)));
@@ -236,6 +240,8 @@ void apply_alpha_sse2(unsigned char *src_rgb_image, unsigned char *dst_rgb_image
     }
 }
 
+#elif defined(AVX)
+
 void yuv_to_rgb_avx(unsigned char *yuv_image, unsigned char *rgb_image) {
 
 }
@@ -247,3 +253,5 @@ void rgb_to_yuv_avx(unsigned char *rgb_image, unsigned char *yuv_image) {
 void apply_alpha_avx(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha) {
 
 }
+
+#endif
