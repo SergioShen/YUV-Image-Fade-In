@@ -217,41 +217,146 @@ void apply_alpha_sse2(unsigned char *src_rgb_image, unsigned char *dst_rgb_image
 
     // Process every byte
     for (int byte_no = 0; byte_no < PIXEL_NUMBER * 3; byte_no += 8) {
-        ((short *) &src_vector)[0] = (short) src_rgb_image[byte_no];
-        ((short *) &src_vector)[1] = (short) src_rgb_image[byte_no + 1];
-        ((short *) &src_vector)[2] = (short) src_rgb_image[byte_no + 2];
-        ((short *) &src_vector)[3] = (short) src_rgb_image[byte_no + 3];
-        ((short *) &src_vector)[4] = (short) src_rgb_image[byte_no + 4];
-        ((short *) &src_vector)[5] = (short) src_rgb_image[byte_no + 5];
-        ((short *) &src_vector)[6] = (short) src_rgb_image[byte_no + 6];
-        ((short *) &src_vector)[7] = (short) src_rgb_image[byte_no + 7];
+        for (int i = 0; i < 8; i++)
+            ((short *) &src_vector)[i] = (short) src_rgb_image[byte_no + i];
 
         result = __builtin_ia32_pmullw128(src_vector, alpha_vector);
         result = __builtin_ia32_psrlw128(result, *(v8hi *) const_8);
 
-        dst_rgb_image[byte_no] = (unsigned char) (((short *) (&result))[0]);
-        dst_rgb_image[byte_no + 1] = (unsigned char) (((short *) (&result))[1]);
-        dst_rgb_image[byte_no + 2] = (unsigned char) (((short *) (&result))[2]);
-        dst_rgb_image[byte_no + 3] = (unsigned char) (((short *) (&result))[3]);
-        dst_rgb_image[byte_no + 4] = (unsigned char) (((short *) (&result))[4]);
-        dst_rgb_image[byte_no + 5] = (unsigned char) (((short *) (&result))[5]);
-        dst_rgb_image[byte_no + 6] = (unsigned char) (((short *) (&result))[6]);
-        dst_rgb_image[byte_no + 7] = (unsigned char) (((short *) (&result))[7]);
+        for (int i = 0; i < 8; i++)
+            dst_rgb_image[byte_no + i] = (unsigned char) (((short *) (&result))[i]);
     }
 }
 
 #elif defined(AVX)
 
-void yuv_to_rgb_avx(unsigned char *yuv_image, unsigned char *rgb_image) {
+typedef float v8sf __attribute__ ((vector_size(32)));
+typedef short v8hi __attribute__ ((vector_size(16)));
+typedef short v16hi __attribute__ ((vector_size(32)));
 
+void yuv_to_rgb_avx(unsigned char *yuv_image, unsigned char *rgb_image) {
+    static float const_16[8]{16.0, 16.0, 16.0, 16.0, 16.0, 16.0, 16.0, 16.0};
+    static float const_128[8]{128.0, 128.0, 128.0, 128.0, 128.0, 128.0, 128.0, 128.0};
+    static float const_1_164383[8]{1.164383, 1.164383, 1.164383, 1.164383, 1.164383, 1.164383, 1.164383, 1.164383};
+    static float const_1_596027[8]{1.596027, 1.596027, 1.596027, 1.596027, 1.596027, 1.596027, 1.596027, 1.596027};
+    static float const_0_391762[8]{0.391762, 0.391762, 0.391762, 0.391762, 0.391762, 0.391762, 0.391762, 0.391762};
+    static float const_0_812968[8]{0.812968, 0.812968, 0.812968, 0.812968, 0.812968, 0.812968, 0.812968, 0.812968};
+    static float const_2_017232[8]{2.017232, 2.017232, 2.017232, 2.017232, 2.017232, 2.017232, 2.017232, 2.017232};
+    v8sf y_vector, u_vector, v_vector, r_vector, g_vector, b_vector, temp_1_vector, temp_2_vector, temp_3_vector;
+
+    for (int pixel_no = 0; pixel_no < PIXEL_NUMBER; pixel_no += 8) {
+        for (int i = 0; i < 8; i++) {
+            ((float *) &y_vector)[i] = (float) yuv_image[pixel_no + i];
+            ((float *) &u_vector)[i] = (float) yuv_image[PIXEL_NUMBER + uv_index[pixel_no + i]];
+            ((float *) &v_vector)[i] = (float) yuv_image[PIXEL_NUMBER + PIXEL_NUMBER / 4 + uv_index[pixel_no + i]];
+        }
+
+        // Subtract const vector
+        y_vector = __builtin_ia32_subps256(y_vector, *(v8sf *) const_16);
+        u_vector = __builtin_ia32_subps256(u_vector, *(v8sf *) const_128);
+        v_vector = __builtin_ia32_subps256(v_vector, *(v8sf *) const_128);
+
+        // R vector
+        temp_1_vector = __builtin_ia32_mulps256(y_vector, *(v8sf *) const_1_164383);
+        temp_2_vector = __builtin_ia32_mulps256(v_vector, *(v8sf *) const_1_596027);
+        r_vector = __builtin_ia32_addps256(temp_1_vector, temp_2_vector);
+
+        // G vector
+        temp_2_vector = __builtin_ia32_mulps256(u_vector, *(v8sf *) const_0_391762);
+        temp_3_vector = __builtin_ia32_mulps256(v_vector, *(v8sf *) const_0_812968);
+        g_vector = __builtin_ia32_subps256(temp_1_vector, temp_2_vector);
+        g_vector = __builtin_ia32_subps256(g_vector, temp_3_vector);
+
+        // B vector
+        temp_2_vector = __builtin_ia32_mulps256(u_vector, *(v8sf *) const_2_017232);
+        b_vector = __builtin_ia32_addps256(temp_1_vector, temp_2_vector);
+
+        for (int i = 0; i < 8; i++) {
+            rgb_image[(pixel_no + i) * 3] = (unsigned char) RANGE(((float *) &r_vector)[i], 0, 255);
+            rgb_image[(pixel_no + i) * 3 + 1] = (unsigned char) RANGE(((float *) &g_vector)[i], 0, 255);
+            rgb_image[(pixel_no + i) * 3 + 2] = (unsigned char) RANGE(((float *) &b_vector)[i], 0, 255);
+        }
+    }
 }
 
 void rgb_to_yuv_avx(unsigned char *rgb_image, unsigned char *yuv_image) {
+    static float const_16[8]{16.0, 16.0, 16.0, 16.0, 16.0, 16.0, 16.0, 16.0};
+    static float const_128[8]{128.0, 128.0, 128.0, 128.0, 128.0, 128.0, 128.0, 128.0};
+    static float const_0_256788[8]{0.256788, 0.256788, 0.256788, 0.256788, 0.256788, 0.256788, 0.256788, 0.256788};
+    static float const_0_504129[8]{0.504129, 0.504129, 0.504129, 0.504129, 0.504129, 0.504129, 0.504129, 0.504129};
+    static float const_0_097906[8]{0.097906, 0.097906, 0.097906, 0.097906, 0.097906, 0.097906, 0.097906, 0.097906};
+    static float const_m_0_148223[8]{-0.148223, -0.148223, -0.148223, -0.148223,
+                                     -0.148223, -0.148223, -0.148223, -0.148223};
+    static float const_0_290993[8]{0.290993, 0.290993, 0.290993, 0.290993, 0.290993, 0.290993, 0.290993, 0.290993};
+    static float const_0_439216[8]{0.439216, 0.439216, 0.439216, 0.439216, 0.439216, 0.439216, 0.439216, 0.439216};
+    static float const_0_367788[8]{0.367788, 0.367788, 0.367788, 0.367788, 0.367788, 0.367788, 0.367788, 0.367788};
+    static float const_0_071427[8]{0.071427, 0.071427, 0.071427, 0.071427, 0.071427, 0.071427, 0.071427, 0.071427};
+    v8sf y_vector, u_vector, v_vector, r_vector, g_vector, b_vector, temp_vector;
 
+    for (int pixel_no = 0; pixel_no < PIXEL_NUMBER; pixel_no += 8) {
+        for (int i = 0; i < 8; i++) {
+            ((float *) &r_vector)[i] = (float) rgb_image[(pixel_no + i) * 3];
+            ((float *) &g_vector)[i] = (float) rgb_image[(pixel_no + i) * 3 + 1];
+            ((float *) &b_vector)[i] = (float) rgb_image[(pixel_no + i) * 3 + 2];
+        }
+
+        // Y vector
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_256788, r_vector);
+        y_vector = __builtin_ia32_addps256(temp_vector, *(v8sf *) const_16);
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_504129, g_vector);
+        y_vector = __builtin_ia32_addps256(y_vector, temp_vector);
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_097906, b_vector);
+        y_vector = __builtin_ia32_addps256(y_vector, temp_vector);
+
+        // U vector
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_m_0_148223, r_vector);
+        u_vector = __builtin_ia32_addps256(temp_vector, *(v8sf *) const_128);
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_290993, g_vector);
+        u_vector = __builtin_ia32_subps256(u_vector, temp_vector);
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_439216, b_vector);
+        u_vector = __builtin_ia32_addps256(u_vector, temp_vector);
+
+        // V vector
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_439216, r_vector);
+        v_vector = __builtin_ia32_addps256(temp_vector, *(v8sf *) const_128);
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_367788, g_vector);
+        v_vector = __builtin_ia32_subps256(v_vector, temp_vector);
+        temp_vector = __builtin_ia32_mulps256(*(v8sf *) const_0_071427, b_vector);
+        v_vector = __builtin_ia32_subps256(v_vector, temp_vector);
+
+        for (int i = 0; i < 8; i++) {
+            yuv_image[pixel_no + i] = (unsigned char) RANGE(((float *) &y_vector)[i], 0, 255);
+            yuv_image[PIXEL_NUMBER + uv_index[pixel_no + i]] = (unsigned char) RANGE(((float *) &u_vector)[i], 0, 255);
+            yuv_image[PIXEL_NUMBER + PIXEL_NUMBER / 4 + uv_index[pixel_no + i]]
+                    = (unsigned char) RANGE(((float *) &v_vector)[i], 0, 255);
+        }
+    }
 }
 
 void apply_alpha_avx(unsigned char *src_rgb_image, unsigned char *dst_rgb_image, unsigned char alpha) {
+#if defined(AVX2)
+    static short const_8[16] = {8, 0, 0, 0, 0, 0, 0, 0};
+    v16hi src_vector, alpha_vector, result;
 
+    // Initialize const vectors
+    for (int i = 0; i < 16; i++) {
+        ((short *) &alpha_vector)[i] = alpha;
+    }
+
+    // Process every byte
+    for (int byte_no = 0; byte_no < PIXEL_NUMBER * 3; byte_no += 16) {
+        for (int i = 0; i < 16; i++)
+            ((short *) &src_vector)[i] = (short) src_rgb_image[byte_no + i];
+
+        result = __builtin_ia32_pmullw256(src_vector, alpha_vector);
+        result = __builtin_ia32_psrlw256(result, *(v8hi *) const_8);
+
+        for (int i = 0; i < 16; i++)
+            dst_rgb_image[byte_no + i] = (unsigned char) (((short *) (&result))[i]);
+    }
+#else
+    apply_alpha_base(src_rgb_image, dst_rgb_image, alpha);
+#endif
 }
 
 #endif
